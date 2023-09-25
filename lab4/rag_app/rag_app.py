@@ -106,26 +106,27 @@ def lambda_handler(event, context):
     print(query)
     print(uuid)
 
-#     message_history = DynamoDBChatMessageHistory(table_name="MemoryTable", session_id=uuid)
-#     memory = ConversationBufferWindowMemory(memory_key="chat_history", chat_memory=message_history, return_messages=True, k=3)
+    message_history = DynamoDBChatMessageHistory(table_name="MemoryTable", session_id=uuid)
+    memory = ConversationBufferWindowMemory(memory_key="chat_history", chat_memory=message_history, return_messages=True, k=3)
     
-#     # This retriever is using the query API, self implement
-#     # retriever = KendraIndexRetriever(kendraindex=KENDRA_INDEX_ID, 
-#     #                                  awsregion=REGION, 
-#     #                                  return_source_documents=True)
+    # This retriever is using the query API, self implement
+    # retriever = KendraIndexRetriever(kendraindex=KENDRA_INDEX_ID, 
+    #                                  awsregion=REGION, 
+    #                                  return_source_documents=True)
     
-#     # This retriever is using the new Kendra retrieve API https://aws.amazon.com/blogs/machine-learning/quickly-build-high-accuracy-generative-ai-applications-on-enterprise-data-using-amazon-kendra-langchain-and-large-language-models/
-#     retriever = AmazonKendraRetriever(
-#         index_id=KENDRA_INDEX_ID,
-#         region_name=REGION,
-#     )
+    # This retriever is using the new Kendra retrieve API https://aws.amazon.com/blogs/machine-learning/quickly-build-high-accuracy-generative-ai-applications-on-enterprise-data-using-amazon-kendra-langchain-and-large-language-models/
+    retriever = AmazonKendraRetriever(
+        index_id=KENDRA_INDEX_ID,
+        region_name=REGION,
+        top_k = 2
+    )
     
-#     retriever.get_relevant_documents(query)
+    retriever.get_relevant_documents(query)
     
-#     qa = ConversationalRetrievalChain.from_llm(llm=llm, retriever=retriever, memory=memory, condense_question_prompt=CONDENSE_QUESTION_PROMPT, verbose=True)
+    qa = ConversationalRetrievalChain.from_llm(llm=llm, retriever=retriever, memory=memory, condense_question_prompt=CONDENSE_QUESTION_PROMPT, verbose=True)
 
-#     response = qa.run(query)
-#     clean_response = response['output_text'].replace('\n','').strip()
+    response = qa.run(query)
+    clean_response = response['output_text'].replace('\n','').strip()
     
     prompt_template = """Use the following pieces of context to answer the question at the end. If you don't know the answer, just say that you don't know, don't try to make up an answer.
 
@@ -172,8 +173,8 @@ def lambda_handler(event, context):
         prompt=QA_PROMPT,
     )
     
-    response = chain({"input_documents": [] , "question": query}, return_only_outputs=True)
-    clean_response = response['output_text'].replace('\n','').strip()
+    response = chain({"input_documents": docs , "question": query}, return_only_outputs=True)
+    clean_response = response['output_text'].replace('\n','').strip().split("Helpful Answer: ")[1]
 
     return {
         'statusCode': 200,
